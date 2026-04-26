@@ -1117,6 +1117,71 @@ const DB = {
   }},
 };
 
+// Глобальная калибровка CPC: поднимает ставки по всем поднишам с учётом конкуренции и ценности категории.
+function calibrateAllNicheCpc(db){
+  const compMultiplier={
+    'Низкая':1.60,
+    'Средняя':1.90,
+    'Высокая':2.30,
+    'Очень высокая':2.90,
+    'Максимальная':3.40,
+  };
+  const compMinFloor={
+    'Низкая':30,
+    'Средняя':45,
+    'Высокая':70,
+    'Очень высокая':120,
+    'Максимальная':180,
+  };
+  const compMaxFloor={
+    'Низкая':70,
+    'Средняя':110,
+    'Высокая':180,
+    'Очень высокая':320,
+    'Максимальная':500,
+  };
+  const catMultiplier={
+    construction:1.90,
+    repair_home:1.80,
+    realty:1.70,
+    dental:1.80,
+    legal:1.70,
+    finance:1.90,
+    b2b:1.80,
+    it:1.60,
+    security:1.50,
+    accounting:1.50,
+    insurance:1.50,
+    cargo:1.45,
+  };
+
+  Object.entries(db).forEach(([catKey,catVal])=>{
+    const subs=(catVal&&catVal.subs)?catVal.subs:{};
+    const nicheBoost=catMultiplier[catKey]||1;
+    Object.values(subs).forEach((n)=>{
+      if(!n||typeof n.cpcMin!=='number'||typeof n.cpcMax!=='number')return;
+      const comp=(n.comp||'Средняя');
+      const multi=(compMultiplier[comp]||1.90)*nicheBoost;
+
+      let newMin=Math.round(n.cpcMin*multi);
+      let newMax=Math.round(n.cpcMax*multi);
+
+      newMin=Math.max(newMin,compMinFloor[comp]||45);
+      newMax=Math.max(newMax,compMaxFloor[comp]||110);
+
+      if(newMax<newMin+35)newMax=newMin+35;
+
+      newMin=Math.min(newMin,850);
+      newMax=Math.min(Math.max(newMax,newMin+35),1000);
+
+      n.cpcMin=newMin;
+      n.cpcMax=newMax;
+    });
+  });
+}
+
+calibrateAllNicheCpc(DB);
+
 const NEG_BASE=['бесплатно','скачать','реферат','курсовая','дипломная','вакансия','вакансии','работа','зарплата','форум','отзывы','youtube','видео урок','фото','картинки','что такое','wikipedia','вики','своими руками','самостоятельно','в домашних условиях','программа обучения','курсы стать','как стать','торрент','пиратский','халява','бесплатный онлайн','смотреть онлайн','скачать бесплатно','диплом','контрольная','сочинение','презентация скачать','реклама вакансии'];
 const NEG_CAT={
   medicine:['народные средства','народная медицина','рецепт народный','домашнее лечение','без врача','симптомы','МКБ','диагноз','код по МКБ','лечение травами','гомеопатия','заговор','молитва','признаки болезни','последствия','осложнения','инвалидность','клинические рекомендации','протокол лечения'],
