@@ -2816,12 +2816,30 @@ const DEMO_LIMIT = 1;
 let demoCalcCount = 0;
 document.body.classList.add('demo-centered');
 
+function hydrateDemoSubnicheSelect(){
+  const subEl=document.getElementById('subniche');
+  if(!subEl||!DB.realty||!DB.realty.subs)return;
+  subEl.innerHTML='<option value="">— Выберите подниш —</option>';
+  Object.entries(DB.realty.subs).forEach(([k,v])=>{
+    const o=document.createElement('option');
+    o.value=k+'|realty';
+    o.textContent=v.name;
+    subEl.appendChild(o);
+  });
+  subEl.disabled=false;
+  if(subEl.options.length>1&&!subEl.value){
+    subEl.selectedIndex=1;
+    onSubniche();
+  }
+}
+
 // In demo only one category is available.
 const _origOnCat = onCat;
 onCat = function(){
   const catEl = document.getElementById('cat');
   if(catEl)catEl.value='realty';
   _origOnCat();
+  hydrateDemoSubnicheSelect();
 };
 
 function showDemoModal(){
@@ -2842,12 +2860,13 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   onCat();
   if(subEl){
-    subEl.disabled=false;
-    if(subEl.options.length>1&&!subEl.value){
-      subEl.selectedIndex=1;
-      onSubniche();
-    }
-    subEl.addEventListener('touchstart',()=>{subEl.focus();},{passive:true});
+    hydrateDemoSubnicheSelect();
+    const syncSub=()=>onSubniche();
+    subEl.addEventListener('change',syncSub);
+    subEl.addEventListener('input',syncSub);
+    subEl.addEventListener('blur',syncSub);
+    subEl.addEventListener('touchend',syncSub,{passive:true});
+    subEl.addEventListener('pointerup',syncSub);
   }
 });
 
