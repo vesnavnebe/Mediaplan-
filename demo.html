@@ -198,6 +198,9 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 12px rgba(99,102,
 .lock-overlay{position:relative;overflow:hidden}
 .lock-overlay::after{content:'🔒 Доступно в полной версии';position:absolute;inset:0;background:rgba(11,15,28,.82);backdrop-filter:blur(4px);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#818cf8;letter-spacing:.03em;z-index:10;pointer-events:all;cursor:pointer}
 .demo-banner{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.07));border:1.5px solid rgba(251,191,36,.4);border-radius:14px;padding:.85rem 1.2rem;margin:0 1rem 1.2rem;display:flex;align-items:center;gap:.8rem;font-size:.82rem;line-height:1.55;color:var(--muted)}
+.demo-centered .layout{grid-template-columns:minmax(320px,980px);justify-content:center}
+.demo-centered #res{max-width:980px;margin:0 auto;width:100%}
+.demo-centered .no-print{max-width:980px;margin:0 auto}
 /* ЧЕКЛИСТ */
 .checklist{display:flex;flex-direction:column;gap:.35rem}
 .chk-item{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:8px;cursor:pointer;transition:background .15s;font-size:.78rem;color:var(--muted);user-select:none}
@@ -319,12 +322,11 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 12px rgba(99,102,
 </div>
 
 <div class="wrap">
-<div class="layout">
-
 <div class="demo-banner" style="margin:0 0 0 0;border-radius:14px">
   <span style="font-size:1.4rem;flex-shrink:0">🎁</span>
   <span><strong>Демо-версия:</strong> 1 бесплатный расчёт · 5 категорий из 56. <a href="https://t.me/TaniiFill" target="_blank" style="color:#fbbf24;font-weight:700;text-decoration:none">Получить полную версию →</a></span>
 </div>
+<div class="layout">
 <!-- ФОРМА -->
 <div style="display:flex;flex-direction:column;gap:1.2rem" class="no-print">
   <div class="card">
@@ -332,26 +334,14 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 12px rgba(99,102,
 
     <div class="fg">
       <label class="fl">🔍 Поиск по всем нишам</label>
-      <input id="sub-search" type="text" placeholder="Введите название ниши, услуги или ключевое слово..." oninput="filterSubs()" style="width:100%;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:.55rem .8rem;font-size:.82rem;color:var(--text);font-family:inherit;box-sizing:border-box" aria-label="Поиск подниши">
+      <input id="sub-search" type="text" placeholder="В демо доступна только ниша «Недвижимость и жильё»" oninput="filterSubs()" style="width:100%;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:.55rem .8rem;font-size:.82rem;color:var(--text);font-family:inherit;box-sizing:border-box" aria-label="Поиск подниши" disabled>
       <div id="search-results" style="display:none;max-height:260px;overflow-y:auto;background:var(--card);border:1px solid rgba(148,163,184,.2);border-radius:0 0 8px 8px;margin-top:-.1rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.15);position:relative;z-index:50"></div>
     </div>
 
     <div class="fg">
       <label class="fl">Категория ниши</label>
       <select id="cat" onchange="onCat()" aria-label="Категория ниши">
-        <option value="">— Выберите категорию —</option>
-        <option value="medicine">🏥 Медицина и здоровье</option>
-        <option value="beauty">💅 Красота и уход</option>
-        <option value="construction">🔨 Строительство и ремонт</option>
-        <option value="education">📚 Образование и курсы</option>
-        <option value="realty">🏠 Недвижимость и жильё</option>
-        <option value="" disabled>─────────────────────────</option>
-        <option value="" disabled>🔒 + 51 категория — в полной версии</option>
-        <option value="" disabled>🔒 Авто и транспорт</option>
-        <option value="" disabled>🔒 Фитнес и спорт</option>
-        <option value="" disabled>🔒 Еда и рестораны</option>
-        <option value="" disabled>🔒 IT и digital-услуги</option>
-        <option value="" disabled>🔒 ... и ещё 46 категорий</option>
+        <option value="realty" selected>🏠 Недвижимость и жильё</option>
       </select>
     </div>
 
@@ -2799,11 +2789,33 @@ function render(d){
 // ============ DEMO RESTRICTIONS ============
 const DEMO_LIMIT = 1;
 let demoCalcCount = 0;
+document.body.classList.add('demo-centered');
+
+// In demo only one category is available.
+const _origOnCat = onCat;
+onCat = function(){
+  const catEl = document.getElementById('cat');
+  if(catEl)catEl.value='realty';
+  _origOnCat();
+};
 
 function showDemoModal(){
   const m = document.getElementById('demo-modal');
   m.style.display='flex';
 }
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const catEl = document.getElementById('cat');
+  const searchEl = document.getElementById('sub-search');
+  if(catEl){
+    catEl.value='realty';
+    catEl.disabled=true;
+  }
+  if(searchEl){
+    searchEl.disabled=true;
+  }
+  onCat();
+});
 
 // Override calc to enforce 1-calculation limit
 const _origCalc = calc;
