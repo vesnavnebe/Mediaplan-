@@ -6,6 +6,7 @@
 <title>МедиаПлан Pro — Калькулятор Яндекс.Директ</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 <style>
@@ -2630,6 +2631,57 @@ function showPrintTip(){
   if(t){t.style.display='block';setTimeout(()=>t.style.display='none',5000);}
 }
 
+function reportFileBaseName(){
+  if(!window._lastCamp)return 'mediaplan_report';
+  const c=window._lastCamp;
+  return ('mediaplan_'+(c.catKey||'report')+'_'+(c.nicheName||'report'))
+    .replace(/[^a-zA-Zа-яА-Я0-9_\-]/g,'_');
+}
+
+function exportReportPDF(){
+  if(!window._lastCamp){showToast('Сначала рассчитайте медиаплан');return;}
+  const report=document.querySelector('.rbox');
+  if(!report){showToast('Не найден блок отчёта');return;}
+  if(typeof html2pdf==='undefined'){showToast('PDF-библиотека не загружена, используйте печать');return;}
+  const wrap=document.createElement('div');
+  wrap.style.cssText='background:#ffffff;color:#111827;padding:20px;font-family:Inter,Arial,sans-serif';
+  wrap.innerHTML='<h2 style="margin:0 0 12px;font-size:20px;color:#111827">Медиаплан</h2>';
+  const clone=report.cloneNode(true);
+  clone.style.background='#ffffff';
+  clone.style.border='1px solid #e5e7eb';
+  clone.style.boxShadow='none';
+  clone.querySelectorAll('*').forEach(el=>{
+    el.style.color='#111827';
+    if(el.classList&&el.classList.contains('rk'))el.style.color='#6b7280';
+  });
+  wrap.appendChild(clone);
+  const opt={
+    margin:8,
+    filename:reportFileBaseName()+'.pdf',
+    image:{type:'jpeg',quality:0.95},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  };
+  html2pdf().set(opt).from(wrap).save().then(()=>showToast('✓ PDF скачан!')).catch(()=>showToast('Не удалось выгрузить PDF'));
+}
+
+function exportReportDOC(){
+  if(!window._lastCamp){showToast('Сначала рассчитайте медиаплан');return;}
+  const report=document.querySelector('.rbox');
+  if(!report){showToast('Не найден блок отчёта');return;}
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Медиаплан</title></head><body style="font-family:Arial,sans-serif;color:#111;padding:16px">'+
+    '<h2 style="margin:0 0 12px">Медиаплан</h2>'+report.outerHTML+'</body></html>';
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=reportFileBaseName()+'.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('✓ Word-файл скачан!');
+}
+
 function whatIf(){
   const cpc=+document.getElementById('wi-cpc').value;
   const cr=+document.getElementById('wi-cr').value/100;
@@ -2864,7 +2916,7 @@ function render(d){
       ${d.rD?`<div class="rrow"><span class="rk">Прогноз продаж/мес</span><span class="rv">${d.rD.s}</span></div><div class="rrow"><span class="rk">Прогноз выручки</span><span class="rv">${fmtM(d.rD.rev)}</span></div><div class="rrow"><span class="rk">Маржа (${Math.round(d.mp*100)}%)</span><span class="rv">${fmtM(d.rD.margin)}</span></div><div class="rrow"><span class="rk">Прибыль (за вычетом рекламы)</span><span class="rv" style="color:${d.rD.profit>=0?'var(--green)':'#f87171'}">${fmtM(d.rD.profit)}</span></div><div class="rrow"><span class="rk">ROMI</span><span class="rv" style="color:${d.rD.romi>=0?'var(--green)':'#f87171'}">${Math.round(d.rD.romi)}%</span></div>${d.rD.ltvRepeat>1?`<div class="rrow"><span class="rk">LTV-выручка (×${d.rD.ltvRepeat})</span><span class="rv" style="color:var(--green)">${fmtM(d.rD.ltvRev)}</span></div><div class="rrow"><span class="rk">LTV ROMI</span><span class="rv" style="color:${d.rD.ltvRomi>=0?'var(--green)':'#f87171'}">${Math.round(d.rD.ltvRomi)}%</span></div>`:''}`:''}
     </div>
     <div style="margin-top:.65rem;font-size:.68rem;color:var(--dim);line-height:1.6">* Данные прогнозные, основаны на средних бенчмарках рынка РФ. Фактические результаты зависят от сайта, объявлений и конкуренции.</div>
-    <div class="export-btns"><button class="ebtn" onclick="copyReport()">📋 Копировать отчёт</button><button class="pbtn" onclick="doPrint()">🖨️ Выгрузить PDF</button></div>`;
+    <div class="export-btns"><button class="ebtn" onclick="copyReport()">📋 Копировать отчёт</button><button class="pbtn" onclick="exportReportPDF()">📄 Скачать PDF</button><button class="ebtn" onclick="exportReportDOC()">📝 Скачать Word</button></div>`;
   area.appendChild(c7);
 
   const camp=generateCampaign(d.n,d.catKey,d.budget,d.cAvg,d.rm);
@@ -2896,7 +2948,7 @@ function render(d){
   area.appendChild(c9);
 
   const bw=mk('no-print');
-  bw.innerHTML=`<div class="export-btns" style="margin-top:.3rem"><button class="pbtn" onclick="doPrint()" style="flex:1">🖨️ PDF / Печать отчёта</button><button class="ebtn green" onclick="exportXLSX()" style="flex:1">📊 Скачать XLSX</button></div>`;
+  bw.innerHTML=`<div class="export-btns" style="margin-top:.3rem"><button class="pbtn" onclick="exportReportPDF()" style="flex:1">📄 Скачать PDF</button><button class="ebtn" onclick="exportReportDOC()" style="flex:1">📝 Скачать Word</button><button class="ebtn green" onclick="exportXLSX()" style="flex:1">📊 Скачать XLSX</button></div>`;
   area.appendChild(bw);
 
   if(compareList.length>=2)renderCompare();
